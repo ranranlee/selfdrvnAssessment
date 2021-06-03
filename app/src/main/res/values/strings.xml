@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">SelfdrvnAssessment</string>
+    <string name="avengers">Avengers</string>
+    <string name="your_list_is_empty">Your list is empty.</string>
+    <string name="rating_3">Awesome</string>
+    <string name="rating_2">Very Good</string>
+    <string name="rating_1">Normal</string>
 </resources>

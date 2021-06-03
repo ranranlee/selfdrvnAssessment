@@ -1,6 +1,8 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
+    id 'kotlin-android-extensions'
+    id 'kotlin-kapt'
 }
 
 android {
@@ -45,4 +47,20 @@ dependencies {
 
     //glide
     implementation 'com.github.bumptech.glide:glide:4.11.0'
+    // dimen
+    implementation 'com.intuit.sdp:sdp-android:1.0.6'
+
+    //GSON - json parser
+    implementation 'com.squareup.retrofit2:converter-gson:2.6.2'
+    //room database
+    def room_version = "2.3.0"
+
+    implementation "androidx.room:room-runtime:$room_version"
+    kapt "androidx.room:room-compiler:$room_version"
+
+    // optional - Kotlin Extensions and Coroutines support for Room
+    implementation "androidx.room:room-ktx:$room_version"
+
+    //swipe refresh
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
 }
