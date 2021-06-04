@@ -1,15 +1,19 @@
 package com.example.selfdrvnassessment.activity
 
 
-import android.app.AlertDialog
+import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.text.format.DateFormat
+import android.util.Log
 import android.view.View
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.selfdrvnassessment.BaseActivity
@@ -21,6 +25,7 @@ import com.example.selfdrvnassessment.roomDatabase.database.entity.AvengersListE
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 import java.io.FileOutputStream
+import java.util.jar.Manifest
 
 
 class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
@@ -28,7 +33,7 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
     var list: ArrayList<AvengersListEntity> = ArrayList()
     var tempList: ArrayList<AvengersDetailsModel> = ArrayList()
     var adapter = AvengersAdapter()
-
+    private val permsRequestCode = 200
     override fun getLayoutResourceId(): Int {
         return R.layout.activity_main
     }
@@ -40,15 +45,18 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
 
     override fun onResume() {
         super.onResume()
-        displayLoadingDialog()
+
         refresh()
     }
 
     fun initView() {
-        setupAdapter()
-        getAllList()
 
-        debugLog("check init")
+        if (isAllPermissionGranted(this)){
+            setupAdapter()
+            getAllList()
+        }
+
+
     }
 
     fun setupAdapter() {
@@ -59,16 +67,15 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
 
     fun getAllList() {
 
-//        displayLoadingDialog()
         DatabaseHelper.fetchAllList(this@MainActivity) {
-//            hideLoadingDialog()
+
             if (it.isNotEmpty()) {
                 list = it as ArrayList<AvengersListEntity>
                 adapter.setData(list)
                 checkEmptyList()
-                debugLog("check not empty")
+
             } else {
-                debugLog("check empty")
+
                 addData()
             }
 
@@ -77,6 +84,7 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
     }
 
     fun checkEmptyList() {
+
         if (list.isEmpty()) {
             rcvList.visibility = View.GONE
             tvEmptyList.visibility = View.VISIBLE
@@ -88,7 +96,6 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
 
     fun addData() {
 
-        debugLog("check add")
         val data = AvengersDetailsModel()
         data.name = "spiderman"
         data.imagePath = saveDrawableToFolder(R.drawable.spiderman)
@@ -111,7 +118,6 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
 
         saveToDB(tempList)
 
-
     }
 
     override fun onItemClick(model: AvengersListEntity) {
@@ -119,6 +125,7 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
     }
 
     fun toDetailsActivity(model: AvengersListEntity) {
+
         val dataPass = AvengersDetailsModel()
         dataPass.id = model.id.toString()
         dataPass.name = model.name
@@ -131,13 +138,8 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
         startActivity(intent)
     }
 
-    fun checkPermission() {
-
-    }
-
     fun saveToDB(list: ArrayList<AvengersDetailsModel>) {
 
-        debugLog("check save db")
         for (i in list.indices) {
             val data = AvengersListEntity(
                 name = list[i].name,
@@ -149,20 +151,20 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
         }
 
         Handler(Looper.getMainLooper()).postDelayed({
-            displayLoadingDialog()
+
             refresh()
         }, 3000)
     }
 
 
     fun refresh() {
+        displayLoadingDialog()
         DatabaseHelper.fetchAllList(this@MainActivity) {
 
             if (it.isNotEmpty()) {
                 list = it as ArrayList<AvengersListEntity>
                 adapter.setData(list)
                 checkEmptyList()
-                debugLog("check not empty")
             } else {
                 debugLog("check  empty")
             }
@@ -194,8 +196,69 @@ class MainActivity : BaseActivity(), AvengersAdapter.ItemClickListener {
         return capturedFile.absolutePath
     }
 
-    fun convertDate(dateInMilliseconds: String, dateFormat: String?): String? {
+    fun convertDate(dateInMilliseconds: String, dateFormat: String?): String {
         return DateFormat.format(dateFormat, dateInMilliseconds.toLong()).toString()
+    }
+
+    fun isAllPermissionGranted(activity: Activity): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkAllPermission(activity)
+        } else {
+
+            true
+        }
+    }
+
+
+    private fun checkAllPermission(activity: Activity): Boolean {
+
+        val write = ContextCompat.checkSelfPermission(
+            activity,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
+        val read = ContextCompat.checkSelfPermission(
+            activity,
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
+        )
+
+        val permissionNeeded: MutableList<String> = ArrayList()
+
+
+        if (write != PackageManager.PERMISSION_GRANTED) {
+            permissionNeeded.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+
+        if (read != PackageManager.PERMISSION_GRANTED) {
+            permissionNeeded.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+
+        if (permissionNeeded.isNotEmpty()) {
+
+            ActivityCompat.requestPermissions(
+                activity,
+                permissionNeeded.toTypedArray(),
+               permsRequestCode
+            )
+            return false
+        }
+        return true
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when(requestCode){
+            permsRequestCode->{
+                if (isAllPermissionGranted(this)){
+                    setupAdapter()
+                    getAllList()
+                }
+            }
+        }
+
     }
 
 
